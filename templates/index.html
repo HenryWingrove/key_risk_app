@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key Risk Assessment</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+        body {
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>Key Risk Assessment</h1>
+    <p>Click on the map to set your home location and lost key location.</p>
+    <div id="map"></div>
+    <p id="instructions">Click to set the home location, then click again to set the lost key location.</p>
+    <p>Distance: <span id="distance"></span> meters</p>
+    <p>Risk Score: <span id="risk_score"></span></p>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);  // Centered on London
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        var homeMarker, lostMarker;
+        var homeCoords, lostCoords;
+
+        map.on('click', function(e) {
+            if (!homeMarker) {
+                homeCoords = e.latlng;
+                homeMarker = L.marker(homeCoords).addTo(map).bindPopup("Home Location").openPopup();
+                document.getElementById('instructions').innerText = "Now, click on the map to set the lost key location.";
+            } else if (!lostMarker) {
+                lostCoords = e.latlng;
+                lostMarker = L.marker(lostCoords).addTo(map).bindPopup("Lost Key Location").openPopup();
+                calculateRisk(homeCoords, lostCoords);
+            }
+        });
+
+        function calculateRisk(home, lost) {
+            fetch('/calculate_risk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    home_lat: home.lat,
+                    home_lon: home.lng,
+                    lost_lat: lost.lat,
+                    lost_lon: lost.lng
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('distance').innerText = data.distance;
+                document.getElementById('risk_score').innerText = data.risk_score;
+            });
+        }
+    </script>
+</body>
+</html>
