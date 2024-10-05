@@ -13,6 +13,7 @@
         body {
             font-family: Arial, sans-serif;
         }
+        /* Box layout for input fields */
         #input-boxes {
             position: absolute;
             top: 10px;
@@ -33,17 +34,22 @@
     </style>
 </head>
 <body>
+    <!-- Input fields for addresses -->
     <div id="input-boxes">
         <input type="text" id="home-address" placeholder="Enter home address">
         <input type="text" id="lost-key-address" placeholder="Enter lost key address">
     </div>
+
+    <!-- The map container -->
     <div id="map"></div>
+
     <p>Distance: <span id="distance"></span> meters</p>
     <p>Risk Score: <span id="risk_score"></span></p>
     <p>Estimated Search Time: <span id="search_time"></span> minutes</p>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
+        // Initialize the map
         var map = L.map('map').setView([51.505, -0.09], 13);  // Centered on London
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -104,7 +110,7 @@
             }
         }
 
-        // Function to calculate rpython app.pyisk using the backend
+        // Function to calculate risk using the backend
         function calculateRisk(home, lost) {
             fetch('/calculate_risk', {
                 method: 'POST',
