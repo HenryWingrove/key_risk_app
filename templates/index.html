@@ -13,15 +13,34 @@
         body {
             font-family: Arial, sans-serif;
         }
+        #input-boxes {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 600px;
+        }
+        input {
+            width: 45%;
+            padding: 5px;
+            font-size: 14px;
+        }
+        button {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Key Risk Assessment</h1>
-    <p>Click on the map to set your home location and lost key location.</p>
+    <div id="input-boxes">
+        <input type="text" id="home-address" placeholder="Enter home address">
+        <input type="text" id="lost-key-address" placeholder="Enter lost key address">
+    </div>
     <div id="map"></div>
-    <p id="instructions">Click to set the home location, then click again to set the lost key location.</p>
     <p>Distance: <span id="distance"></span> meters</p>
     <p>Risk Score: <span id="risk_score"></span></p>
+    <p>Estimated Search Time: <span id="search_time"></span> minutes</p>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
@@ -33,18 +52,59 @@
         var homeMarker, lostMarker;
         var homeCoords, lostCoords;
 
-        map.on('click', function(e) {
-            if (!homeMarker) {
-                homeCoords = e.latlng;
-                homeMarker = L.marker(homeCoords).addTo(map).bindPopup("Home Location").openPopup();
-                document.getElementById('instructions').innerText = "Now, click on the map to set the lost key location.";
-            } else if (!lostMarker) {
-                lostCoords = e.latlng;
-                lostMarker = L.marker(lostCoords).addTo(map).bindPopup("Lost Key Location").openPopup();
-                calculateRisk(homeCoords, lostCoords);
-            }
+        // Function to geocode an address using OpenStreetMap's Nominatim API
+        function geocodeAddress(address, callback) {
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(address);
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        var lat = data[0].lat;
+                        var lon = data[0].lon;
+                        callback([lat, lon]);
+                    } else {
+                        alert('Address not found: ' + address);
+                    }
+                })
+                .catch(err => alert('Error: ' + err));
+        }
+
+        // Set home location based on address input
+        document.getElementById('home-address').addEventListener('change', function() {
+            var address = document.getElementById('home-address').value;
+            geocodeAddress(address, function(coords) {
+                homeCoords = { lat: parseFloat(coords[0]), lng: parseFloat(coords[1]) };
+                if (homeMarker) {
+                    map.removeLayer(homeMarker);
+                }
+                homeMarker = L.marker([homeCoords.lat, homeCoords.lng]).addTo(map).bindPopup("Home Location").openPopup();
+                map.setView([homeCoords.lat, homeCoords.lng], 13);
+                checkForBothLocations();
+            });
         });
 
+        // Set lost key location based on address input
+        document.getElementById('lost-key-address').addEventListener('change', function() {
+            var address = document.getElementById('lost-key-address').value;
+            geocodeAddress(address, function(coords) {
+                lostCoords = { lat: parseFloat(coords[0]), lng: parseFloat(coords[1]) };
+                if (lostMarker) {
+                    map.removeLayer(lostMarker);
+                }
+                lostMarker = L.marker([lostCoords.lat, lostCoords.lng]).addTo(map).bindPopup("Lost Key Location").openPopup();
+                map.setView([lostCoords.lat, lostCoords.lng], 13);
+                checkForBothLocations();
+            });
+        });
+
+        // Check if both locations are set and calculate risk
+        function checkForBothLocations() {
+            if (homeCoords && lostCoords) {
+                calculateRisk(homeCoords, lostCoords);
+            }
+        }
+
+        // Function to calculate rpython app.pyisk using the backend
         function calculateRisk(home, lost) {
             fetch('/calculate_risk', {
                 method: 'POST',
@@ -62,6 +122,7 @@
             .then(data => {
                 document.getElementById('distance').innerText = data.distance;
                 document.getElementById('risk_score').innerText = data.risk_score;
+                document.getElementById('search_time').innerText = data.estimated_time;
             });
         }
     </script>
